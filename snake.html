@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-  /* Layout: one handset in the middle of the page; LCD screen on top, keypad below. Single deliberate look (old mono LCD phone). */
+  /* Layout: one handset in the middle of the page; LCD screen on top, keypad below. Single deliberate look (old mono LCD phone), with three LCD skins. */
   :root {
     --desk: #23262b;        /* page background */
     --shell: #3a3f47;       /* handset plastic */
@@ -19,6 +19,9 @@
     --font-body: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
     color-scheme: dark;
   }
+  .phone[data-skin="night"] { --lcd: #0e2a2f; --lcd-shade: #133439; --ink: #8de0cf; }
+  .phone[data-skin="contrast"] { --lcd: #0b0b0b; --lcd-shade: #1a1a1a; --ink: #ffd60a; }
+
   html, body { height: 100%; }
   body {
     background: var(--desk);
@@ -52,7 +55,6 @@
     font-size: 13px;
     letter-spacing: .14em;
     text-transform: uppercase;
-    color: var(--label);
     padding-inline: 6px;
   }
   .brand small { font-family: var(--font-body); letter-spacing: .04em; text-transform: none; font-size: 11px; opacity: .7; }
@@ -64,17 +66,19 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    position: relative;
   }
   .hud {
     display: flex;
     justify-content: space-between;
+    gap: 8px;
     font-family: var(--font-display);
     color: var(--ink);
-    font-size: 14px;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
     padding-inline: 2px;
+    white-space: nowrap;
   }
+  .board { position: relative; }
   canvas {
     display: block;
     width: 100%;
@@ -84,23 +88,105 @@
     border: 2px solid var(--ink);
     box-sizing: border-box;
   }
+
+  /* ---------- LCD overlays (menu, panels, messages) ---------- */
   .overlay {
     position: absolute;
-    inset: 38px 12px 12px;
+    inset: 2px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    text-align: center;
+    gap: 8px;
+    padding: 12px;
+    overflow: auto;
     color: var(--ink);
-    background: color-mix(in srgb, var(--lcd) 82%, transparent);
+    background: color-mix(in srgb, var(--lcd) 90%, transparent);
     font-family: var(--font-display);
+    font-size: 12px;
+    line-height: 1.5;
   }
-  .overlay h1 { margin: 0; font-size: clamp(22px, 7vw, 30px); font-weight: 700; letter-spacing: .04em; text-wrap: balance; }
-  .overlay p { margin: 0; font-size: 12px; line-height: 1.6; max-width: 26ch; }
+  .overlay.center { align-items: center; justify-content: center; text-align: center; }
+  .overlay.thin { background: color-mix(in srgb, var(--lcd) 45%, transparent); }
+  .overlay h1, .overlay h2 { margin: 0; font-weight: 700; letter-spacing: .04em; text-wrap: balance; }
+  .overlay h1 { font-size: clamp(22px, 7vw, 30px); }
+  .overlay h2 { font-size: 16px; }
+  .overlay p { margin: 0; max-width: 30ch; }
   .overlay .hint { font-family: var(--font-body); font-size: 11px; opacity: .8; }
+  .overlay .count { font-size: 72px; font-weight: 700; line-height: 1; }
+  .overlay button {
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--ink);
+    background: transparent;
+    border: 2px solid var(--ink);
+    border-radius: 0;
+    box-shadow: none;
+    padding: 5px 10px;
+  }
+  .overlay button:active { transform: none; box-shadow: none; background: var(--ink); color: var(--lcd); }
+  .overlay button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
+  .overlay .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .menu { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+  .menu h1 { text-align: center; font-size: clamp(20px, 6vw, 26px); }
+  .overlay:has(.menu) { padding: 8px 10px; gap: 4px; }
+  .overlay .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    border: 0;
+    padding: 3px 8px;
+    text-align: left;
+  }
+  .overlay .row.sel { background: var(--ink); color: var(--lcd); }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .overlay .tabs button { padding: 3px 6px; font-size: 11px; }
+  .overlay .tabs button[aria-selected="true"] { background: var(--ink); color: var(--lcd); }
+  .modepick { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .overlay .modepick button { padding: 2px 8px; }
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
+  .list li { display: grid; grid-template-columns: 3ch minmax(0, 1fr) auto; gap: 6px; align-items: baseline; }
+  .list li .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list li.me { text-decoration: underline; }
+  .list .tag { font-family: var(--font-body); font-size: 10px; opacity: .75; }
+  .stats { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+  .stats dt, .stats dd { margin: 0; }
+  .badges { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .badges li { display: grid; grid-template-columns: 2ch minmax(0, 1fr); gap: 6px; }
+  .badges li.locked { opacity: .5; }
+  .badges .desc, .help dd { font-family: var(--font-body); font-size: 11px; }
+  .help { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+  .help dt { font-weight: 700; }
+  .help dd { margin: 0; line-height: 1.5; }
+  .nameform { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
+  .nameform label { width: 100%; }
+  .nameform input {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--lcd);
+    border: 2px solid var(--ink);
+    border-radius: 0;
+    padding: 4px 8px;
+    width: 12ch;
+    max-width: 100%;
+  }
+  .nameform input:focus { outline: 2px dashed var(--ink); outline-offset: 2px; }
+  .toast {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    padding: 6px 8px;
+    background: var(--ink);
+    color: var(--lcd);
+    font-family: var(--font-display);
+    font-size: 11px;
+    text-align: center;
+    pointer-events: none;
+  }
 
+  /* ---------- keypad ---------- */
   .keypad { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
   .soft { display: flex; flex-direction: column; gap: 10px; }
   .soft:last-child { align-items: flex-end; }
@@ -114,8 +200,8 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  button:active, button.pressed { transform: translateY(2px); box-shadow: 0 1px 0 #9ea294, 0 2px 4px rgba(0,0,0,.35); }
-  button:focus-visible { outline: 3px solid var(--lcd); outline-offset: 2px; }
+  button:active { transform: translateY(2px); box-shadow: 0 1px 0 #9ea294, 0 2px 4px rgba(0,0,0,.35); }
+  button:focus-visible { outline: 3px solid var(--key); outline-offset: 2px; }
   .pill {
     font-family: var(--font-display);
     font-size: 11px;
@@ -125,340 +211,834 @@
     border-radius: 999px;
     min-width: 76px;
   }
-  .dpad {
-    display: grid;
-    grid-template-columns: repeat(3, 52px);
-    grid-template-rows: repeat(3, 52px);
-    gap: 4px;
-  }
+  .dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 4px; }
   .dpad button { border-radius: 12px; font-size: 18px; display: grid; place-items: center; }
   .dpad .up { grid-area: 1 / 2; }
   .dpad .left { grid-area: 2 / 1; }
   .dpad .mid { grid-area: 2 / 2; border-radius: 50%; font-family: var(--font-display); font-size: 10px; }
   .dpad .right { grid-area: 2 / 3; }
   .dpad .down { grid-area: 3 / 2; }
-  .footnote { font-size: 11px; line-height: 1.6; text-align: center; color: var(--label); opacity: .75; margin: 0; }
+  .footnote { font-size: 11px; line-height: 1.6; text-align: center; opacity: .75; margin: 0; }
   kbd { font-family: var(--font-body); background: rgba(255,255,255,.08); border-radius: 4px; padding: 0 4px; }
 
   @media (max-width: 380px) {
     .dpad { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); }
     .pill { min-width: 60px; padding: 8px 10px; }
+    .hud { font-size: 11px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    button:active, button.pressed { transform: none; }
+    button:active { transform: none; }
   }
 </style>
 
-<main class="phone">
+<main class="phone" data-skin="classic">
   <div class="brand"><span>Pocket Snake</span><small>model 3310-ish</small></div>
 
   <div class="screen">
     <div class="hud">
-      <span id="score">SCORE 0000</span>
+      <span id="score">SC 0000</span>
+      <span id="mid"></span>
       <span id="best">HI 0000</span>
     </div>
-    <canvas id="board" width="400" height="400" aria-label="Snake game board"></canvas>
-    <div class="overlay" id="overlay">
-      <h1 id="ovTitle">SNAKE</h1>
-      <p id="ovText">Eat the dots. Don't hit the walls or yourself.</p>
-      <p class="hint" id="ovHint">Press Enter, Space, or OK to start</p>
+    <div class="board">
+      <canvas id="board" width="400" height="400" aria-label="Snake game board"></canvas>
+      <div class="overlay center" id="overlay" aria-live="polite">
+        <h1>SNAKE</h1>
+        <p>Loading the menu…</p>
+      </div>
+      <div class="toast" id="toast" role="status" hidden></div>
     </div>
   </div>
 
   <div class="keypad">
     <div class="soft">
-      <button class="pill" id="btnStart" type="button">Start</button>
-      <button class="pill" id="btnWrap" type="button" aria-pressed="false">Walls</button>
+      <button class="pill" id="btnMenu" type="button">Menu</button>
     </div>
     <div class="dpad">
       <button class="up" data-dir="up" type="button" aria-label="Up">▲</button>
       <button class="left" data-dir="left" type="button" aria-label="Left">◀</button>
-      <button class="mid" id="btnOk" type="button" aria-label="OK / pause">OK</button>
+      <button class="mid" id="btnOk" type="button" aria-label="OK">OK</button>
       <button class="right" data-dir="right" type="button" aria-label="Right">▶</button>
       <button class="down" data-dir="down" type="button" aria-label="Down">▼</button>
     </div>
     <div class="soft">
       <button class="pill" id="btnPause" type="button">Pause</button>
-      <button class="pill" id="btnSpeed" type="button">Lvl 3</button>
     </div>
   </div>
 
-  <p class="footnote">Arrows or <kbd>WASD</kbd> to steer · <kbd>Space</kbd> pause · swipe on the screen</p>
+  <p class="footnote">Arrows or <kbd>WASD</kbd> steer · <kbd>Space</kbd> pause · <kbd>Esc</kbd> menu · swipe on the screen</p>
 </main>
 
 <script>
 (() => {
-  const GRID = 20;                 // 20 × 20 cells
-  const canvas = document.getElementById('board');
-  const ctx = canvas.getContext('2d');
-  const css = getComputedStyle(document.documentElement);
-  const INK = css.getPropertyValue('--ink').trim();
-  const GHOST = css.getPropertyValue('--lcd-shade').trim();
-  const LCD = css.getPropertyValue('--lcd').trim();
-
   const $ = id => document.getElementById(id);
-  const scoreEl = $('score'), bestEl = $('best');
-  const overlay = $('overlay'), ovTitle = $('ovTitle'), ovText = $('ovText'), ovHint = $('ovHint');
+  const phone = document.querySelector('.phone');
+  const canvas = $('board');
+  const ctx = canvas.getContext('2d');
+  const ov = $('overlay');
+  const toastEl = $('toast');
+  const scoreEl = $('score'), midEl = $('mid'), bestEl = $('best');
 
+  // ---------- saved on this device ----------
+  const store = {
+    get(key, fallback) {
+      try { const v = localStorage.getItem('pocket-snake:' + key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem('pocket-snake:' + key, JSON.stringify(value)); } catch (e) {}
+    }
+  };
+
+  const SIZES = { small: 14, medium: 20, large: 26 };
+  const SIZE_NAMES = { small: 'Small', medium: 'Medium', large: 'Large' };
+  const MODES = { classic: 'Classic', time: 'Time attack', maze: 'Maze' };
+  const THEMES = { classic: 'Classic', night: 'Night', contrast: 'Contrast' };
+  const TIME_LIMIT = 60000;
+  const MAZE_TARGET = 10;
+  const MAZE_LAYOUTS = 5;
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
+  const POWERS = {
+    slow: { glyph: 'S', name: 'Slow motion', ms: 8000 },
+    double: { glyph: '2', name: 'Double points', ms: 10000 },
+    shrink: { glyph: '-', name: 'Shrink' }
+  };
+  const BADGES = [
+    ['first', 'First bite', 'Eat your first dot'],
+    ['s100', 'Century', 'Score 100 in one game'],
+    ['s300', 'High roller', 'Score 300 in one game'],
+    ['len20', 'Long noodle', 'Grow to length 20'],
+    ['len40', 'Sea serpent', 'Grow to length 40'],
+    ['bonus3', 'Bonus hunter', 'Catch 3 bonus dots in one game'],
+    ['power3', 'Powered up', 'Use 3 power-ups in one game'],
+    ['fast50', 'Full throttle', 'Score 50 at speed 5'],
+    ['time150', 'Beat the clock', 'Score 150 in Time attack'],
+    ['maze1', 'Maze runner', 'Clear maze level 1'],
+    ['maze5', 'Maze master', 'Clear maze level 5'],
+    ['comeback', 'Comeback', 'Eat 5 dots after using your continue'],
+    ['games10', 'Regular', 'Finish 10 games']
+  ];
 
-  let snake, dir, queue, food, score, state, wrap = false, level = 3, lastTick = 0, acc = 0, bonus = null, eaten = 0;
-  let best = 0;
-  try { best = parseInt(localStorage.getItem('pocket-snake-best') || '0', 10) || 0; } catch (e) {}
+  const settings = { mode: 'classic', size: 'medium', level: 3, wrap: false, easy: false, theme: 'classic' };
+  const top10 = store.get('top', {});
+  for (const m of Object.keys(MODES)) if (!Array.isArray(top10[m])) top10[m] = [];
+  const stats = Object.assign({ games: 0, dots: 0, bestLen: 0, totalScore: 0, timeMs: 0, bonuses: 0, powerups: 0 }, store.get('stats', {}));
+  const badges = store.get('badges', {});
+  let nickname = store.get('name', '');
 
-  const pad = n => String(n).padStart(4, '0');
-  const stepMs = () => Math.max(55, 190 - level * 22 - Math.min(eaten, 30) * 1.5);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pad4 = n => String(n).padStart(4, '0');
+  const cycle = (list, cur, d) => list[(list.indexOf(cur) + d + list.length) % list.length];
 
-  function reset() {
-    const mid = Math.floor(GRID / 2);
-    snake = [[mid, mid], [mid - 1, mid], [mid - 2, mid]];
-    dir = 'right';
-    queue = [];
-    score = 0;
-    eaten = 0;
-    bonus = null;
-    food = spawn();
-    updateHud();
+  // ---------- colors come from the active LCD skin ----------
+  let C = {};
+  function applyTheme() {
+    phone.dataset.skin = settings.theme;
+    const cs = getComputedStyle(phone);
+    C = { lcd: cs.getPropertyValue('--lcd').trim(), shade: cs.getPropertyValue('--lcd-shade').trim(), ink: cs.getPropertyValue('--ink').trim() };
+    draw();
+  }
+
+  // ---------- game state ----------
+  let G = SIZES.medium;
+  let g = null;
+  let ui = 'menu';
+  let menuIdx = 0, scoresTab = 'device', scoresMode = 'classic';
+  let countdownStart = 0, lastTick = 0, acc = 0, overInfo = null;
+
+  function freshGame() {
+    G = SIZES[settings.size];
+    g = {
+      mode: settings.mode, size: settings.size, level: settings.level, wrap: settings.wrap, easy: settings.easy,
+      snake: [], dir: 'right', queue: [], food: null, bonus: null, power: null, walls: new Set(),
+      score: 0, eaten: 0, bonuses: 0, powerups: 0, continueUsed: false, dotsAfterContinue: 0, history: [],
+      playMs: 0, slowUntil: 0, doubleUntil: 0, mazeLevel: 1, mazeDots: 0, mazeCleared: 0, ended: null
+    };
+    if (g.mode === 'maze') g.walls = buildMaze(1);
+    placeSnake();
+    g.food = spawn();
+  }
+
+  function placeSnake() {
+    const m = Math.floor(G / 2);
+    g.snake = [[m, m], [m - 1, m], [m - 2, m]];
+    g.dir = 'right';
+    g.queue = [];
+    g.history = [];
+  }
+
+  function buildMaze(level) {
+    const w = new Set(), m = Math.floor(G / 2), q = Math.floor(G / 4), E = G - 1;
+    const add = (x, y) => { if (x >= 0 && y >= 0 && x < G && y < G) w.add(x + ',' + y); };
+    const bars = () => { for (let x = q; x <= E - q; x++) { add(x, q); add(x, E - q); } };
+    const border = () => {
+      for (let i = 0; i < G; i++) {
+        if (i >= m - 2 && i <= m + 1) continue; // a doorway in the middle of each side
+        add(i, 0); add(i, E); add(0, i); add(E, i);
+      }
+    };
+    const posts = () => { for (let y = q; y <= E - q; y++) if (Math.abs(y - m) > 1) { add(q, y); add(E - q, y); } };
+    const corners = () => {
+      const a = Math.max(2, q - 1);
+      for (let i = 1; i <= a; i++) {
+        add(i, 1); add(1, i); add(E - i, 1); add(E - 1, i);
+        add(i, E - 1); add(1, E - i); add(E - i, E - 1); add(E - 1, E - i);
+      }
+    };
+    const layout = ((level - 1) % MAZE_LAYOUTS) + 1;
+    if (layout === 1) bars();
+    if (layout === 2) border();
+    if (layout === 3) { corners(); posts(); }
+    if (layout === 4) { border(); bars(); }
+    if (layout === 5) { border(); posts(); bars(); }
+    for (let x = m - 3; x <= m + 3; x++) w.delete(x + ',' + m); // keep the starting lane clear
+    return w;
   }
 
   function spawn() {
-    const taken = new Set(snake.map(([x, y]) => x + ',' + y));
-    if (bonus) taken.add(bonus.x + ',' + bonus.y);
-    if (food) taken.add(food[0] + ',' + food[1]);
+    const taken = new Set(g.walls);
+    g.snake.forEach(([x, y]) => taken.add(x + ',' + y));
+    for (const it of [g.food, g.bonus, g.power]) if (it) taken.add(it.x + ',' + it.y);
     const free = [];
-    for (let x = 0; x < GRID; x++) for (let y = 0; y < GRID; y++) if (!taken.has(x + ',' + y)) free.push([x, y]);
+    for (let x = 0; x < G; x++) for (let y = 0; y < G; y++) if (!taken.has(x + ',' + y)) free.push({ x, y });
     return free.length ? free[Math.floor(Math.random() * free.length)] : null;
   }
 
-  function updateHud() {
-    scoreEl.textContent = 'SCORE ' + pad(score);
-    bestEl.textContent = 'HI ' + pad(best);
-  }
+  const doubled = () => g.playMs < g.doubleUntil;
+  const slowed = () => g.playMs < g.slowUntil;
 
-  function showOverlay(title, text, hint) {
-    ovTitle.textContent = title;
-    ovText.textContent = text;
-    ovHint.textContent = hint;
-    overlay.hidden = false;
-  }
-
-  function start() {
-    if (state === 'over' || state === undefined || state === 'ready') reset();
-    state = 'playing';
-    overlay.hidden = true;
-    lastTick = performance.now();
-    acc = 0;
-    $('btnStart').textContent = 'Restart';
-    $('btnPause').textContent = 'Pause';
-  }
-
-  function togglePause() {
-    if (state === 'playing') {
-      state = 'paused';
-      $('btnPause').textContent = 'Resume';
-      showOverlay('PAUSED', 'Score ' + score + ' · length ' + snake.length, 'Press Space or OK to resume');
-    } else if (state === 'paused') {
-      state = 'playing';
-      $('btnPause').textContent = 'Pause';
-      overlay.hidden = true;
-      lastTick = performance.now();
-    } else {
-      start();
-    }
-  }
-
-  function gameOver() {
-    state = 'over';
-    let msg = 'You scored ' + score + '.';
-    if (score > best) {
-      best = score;
-      try { localStorage.setItem('pocket-snake-best', String(best)); } catch (e) {}
-      msg = 'New high score: ' + score + '!';
-    }
-    updateHud();
-    showOverlay('GAME OVER', msg, 'Press Enter, Space, or OK to play again');
-    $('btnStart').textContent = 'Start';
+  function stepMs() {
+    let ms = 190 - g.level * 22 - Math.min(g.eaten, 30) * (g.easy ? 0.75 : 1.5);
+    if (g.easy) ms += 40;
+    if (g.mode === 'maze') ms -= Math.min(30, (g.mazeLevel - 1) * 5);
+    ms = Math.max(55, ms);
+    return slowed() ? ms * 1.6 : ms;
   }
 
   function turn(name) {
-    if (state !== 'playing') return;
-    const last = queue.length ? queue[queue.length - 1] : dir;
+    if (ui !== 'playing' && ui !== 'countdown') return;
+    const last = g.queue.length ? g.queue[g.queue.length - 1] : g.dir;
     if (name === last || name === OPPOSITE[last]) return;
-    if (queue.length < 3) queue.push(name);
+    if (g.queue.length < 3) g.queue.push(name);
   }
 
   function tick() {
-    if (queue.length) dir = queue.shift();
-    const [dx, dy] = DIRS[dir];
-    let [hx, hy] = snake[0];
+    g.history.push({ snake: g.snake.map(c => c.slice()), dir: g.dir });
+    if (g.history.length > 6) g.history.shift();
+    if (g.queue.length) g.dir = g.queue.shift();
+
+    const [dx, dy] = DIRS[g.dir];
+    let [hx, hy] = g.snake[0];
     hx += dx; hy += dy;
-    if (wrap) { hx = (hx + GRID) % GRID; hy = (hy + GRID) % GRID; }
-    else if (hx < 0 || hy < 0 || hx >= GRID || hy >= GRID) return gameOver();
+    if (g.wrap) { hx = (hx + G) % G; hy = (hy + G) % G; }
+    else if (hx < 0 || hy < 0 || hx >= G || hy >= G) return crash();
+    if (g.walls.has(hx + ',' + hy)) return crash();
 
-    const eatsFood = food && hx === food[0] && hy === food[1];
-    const eatsBonus = bonus && hx === bonus.x && hy === bonus.y;
+    const at = it => it && it.x === hx && it.y === hy;
+    const eatsFood = at(g.food), eatsBonus = at(g.bonus), eatsPower = at(g.power);
     // the tail moves away this tick unless we grow, so it is safe to step onto it
-    const body = eatsFood ? snake : snake.slice(0, -1);
-    if (body.some(([x, y]) => x === hx && y === hy)) return gameOver();
-
-    snake.unshift([hx, hy]);
-    if (eatsFood) {
-      eaten++;
-      score += level;
-      food = spawn();
-      if (!bonus && eaten % 5 === 0) {
-        const spot = spawn();
-        if (spot) bonus = { x: spot[0], y: spot[1], ttl: 40 };
-      }
-      if (!food) return gameOver();
-    } else {
-      snake.pop();
+    const body = eatsFood ? g.snake : g.snake.slice(0, -1);
+    const hit = body.findIndex(([x, y]) => x === hx && y === hy);
+    if (hit >= 0) {
+      if (!g.easy) return crash();
+      g.snake = g.snake.slice(0, hit); // easy mode: bite off the tail instead of crashing
     }
+
+    g.snake.unshift([hx, hy]);
+    const mult = doubled() ? 2 : 1;
+    if (eatsFood) {
+      g.eaten++;
+      g.score += g.level * mult;
+      if (g.continueUsed) g.dotsAfterContinue++;
+      if (g.mode === 'maze') g.mazeDots++;
+      g.food = null;
+      g.food = spawn();
+      if (!g.bonus && g.eaten % 5 === 0) { const s = spawn(); if (s) g.bonus = { ...s, ttl: 40 }; }
+      if (!g.power && g.eaten % 7 === 3) {
+        const s = spawn();
+        const types = Object.keys(POWERS);
+        if (s) g.power = { ...s, ttl: 60, type: types[Math.floor(Math.random() * types.length)] };
+      }
+    } else {
+      g.snake.pop();
+    }
+
     if (eatsBonus) {
-      score += level * 5 + Math.ceil(bonus.ttl / 4);
-      bonus = null;
-    } else if (bonus && --bonus.ttl <= 0) {
-      bonus = null;
+      g.score += (g.level * 5 + Math.ceil(g.bonus.ttl / 4)) * mult;
+      g.bonuses++;
+      g.bonus = null;
+    } else if (g.bonus && --g.bonus.ttl <= 0) {
+      g.bonus = null;
+    }
+
+    if (eatsPower) {
+      usePower(g.power.type);
+      g.power = null;
+    } else if (g.power && --g.power.ttl <= 0) {
+      g.power = null;
+    }
+
+    checkBadges();
+    if (g.mode === 'maze' && g.mazeDots >= MAZE_TARGET) return mazeClear();
+    if (!g.food) return endGame('full');
+  }
+
+  function usePower(type) {
+    g.powerups++;
+    if (type === 'slow') g.slowUntil = g.playMs + POWERS.slow.ms;
+    if (type === 'double') g.doubleUntil = g.playMs + POWERS.double.ms;
+    if (type === 'shrink') { const n = Math.min(4, g.snake.length - 3); if (n > 0) g.snake.length -= n; }
+    toast(POWERS[type].name + '!');
+  }
+
+  function crash() {
+    if (!g.continueUsed && g.history.length >= 3) { ui = 'crashed'; render(); }
+    else endGame('crash');
+  }
+
+  function continueGame() {
+    const s = g.history[g.history.length - 3];
+    g.snake = s.snake;
+    g.dir = s.dir;
+    g.queue = [];
+    g.history = [];
+    g.continueUsed = true;
+    startCountdown();
+  }
+
+  function mazeClear() {
+    g.mazeCleared = g.mazeLevel;
+    checkBadges();
+    ui = 'clear';
+    render();
+  }
+
+  function nextMaze() {
+    g.mazeLevel++;
+    g.mazeDots = 0;
+    g.bonus = null;
+    g.power = null;
+    g.walls = buildMaze(g.mazeLevel);
+    placeSnake();
+    g.food = null;
+    g.food = spawn();
+    startCountdown();
+  }
+
+  function newGame() {
+    freshGame();
+    resize();
+    startCountdown();
+  }
+
+  function startCountdown() {
+    countdownStart = performance.now();
+    ui = 'countdown';
+    render();
+  }
+
+  function pause() {
+    ui = 'paused';
+    render();
+  }
+
+  function toMenu() {
+    ui = 'menu';
+    render();
+  }
+
+  function endGame(reason) {
+    g.ended = reason;
+    ui = 'over';
+    stats.games++;
+    stats.dots += g.eaten;
+    stats.bestLen = Math.max(stats.bestLen, g.snake.length);
+    stats.totalScore += g.score;
+    stats.timeMs += Math.round(g.playMs);
+    stats.bonuses += g.bonuses;
+    stats.powerups += g.powerups;
+    store.set('stats', stats);
+    checkBadges();
+    const list = top10[g.mode];
+    overInfo = {
+      qualifies: g.score > 0 && (list.length < 10 || g.score > list[list.length - 1].score),
+      saved: false, rank: null, shared: ''
+    };
+    render();
+  }
+
+  function saveScore(raw) {
+    const name = raw.trim().slice(0, 12) || 'Player';
+    nickname = name;
+    store.set('name', name);
+    const entry = { name, score: g.score, len: g.snake.length, size: g.size, level: g.level, easy: g.easy, at: Date.now() };
+    const list = top10[g.mode];
+    list.push(entry);
+    list.sort((a, b) => b.score - a.score || a.at - b.at);
+    list.length = Math.min(list.length, 10);
+    store.set('top', top10);
+    overInfo.saved = true;
+    overInfo.rank = list.indexOf(entry) + 1;
+    overInfo.shared = g.easy ? 'Easy mode scores stay on this device.' : '';
+    render();
+    if (!g.easy) postShared(name, g.mode, g.score);
+  }
+
+  // ---------- badges ----------
+  function checkBadges() {
+    const t = (id, cond) => { if (cond && !badges[id]) unlock(id); };
+    t('games10', stats.games >= 10);
+    if (!g) return;
+    t('first', g.eaten >= 1);
+    t('s100', g.score >= 100);
+    t('s300', g.score >= 300);
+    t('len20', g.snake.length >= 20);
+    t('len40', g.snake.length >= 40);
+    t('bonus3', g.bonuses >= 3);
+    t('power3', g.powerups >= 3);
+    t('fast50', g.level === 5 && g.score >= 50);
+    t('time150', g.mode === 'time' && g.score >= 150);
+    t('maze1', g.mazeCleared >= 1);
+    t('maze5', g.mazeCleared >= 5);
+    t('comeback', g.dotsAfterContinue >= 5);
+  }
+
+  function unlock(id) {
+    badges[id] = Date.now();
+    store.set('badges', badges);
+    const b = BADGES.find(x => x[0] === id);
+    toast('Badge unlocked: ' + b[1]);
+  }
+
+  const toasts = [];
+  let toastTimer = null;
+  function toast(msg) {
+    toasts.push(msg);
+    if (!toastTimer) nextToast();
+  }
+  function nextToast() {
+    const msg = toasts.shift();
+    if (!msg) { toastEl.hidden = true; toastTimer = null; return; }
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    toastTimer = setTimeout(nextToast, 2000);
+  }
+
+  // ---------- shared leaderboard (works on the published page) ----------
+  let db = null, uid = null, shared = [];
+  let sharedState = window.claude && typeof window.claude.use === 'function' ? 'connecting' : 'off';
+  if (sharedState === 'connecting') {
+    Promise.all([window.claude.use('db'), window.claude.use('user')]).then(async ([d, u]) => {
+      if (!d) { sharedState = 'off'; refreshScores(); return; }
+      db = d;
+      uid = u ? await u.id() : null;
+      sharedState = 'live';
+      db.collection('scores').limit(500).onSnapshot(snap => {
+        shared = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        refreshScores();
+      }, () => { sharedState = 'off'; refreshScores(); });
+    }).catch(() => { sharedState = 'off'; refreshScores(); });
+  }
+  function refreshScores() { if (ui === 'scores') render(); }
+
+  async function postShared(name, mode, score) {
+    const done = msg => { if (overInfo) { overInfo.shared = msg; if (ui === 'over') render(); } };
+    if (sharedState !== 'live') return done(sharedState === 'connecting' ? 'The shared board is still connecting, so this score stays on this device.' : '');
+    if (!uid) return done('Sign in to Claude to post to the shared board.');
+    const mine = shared.find(d => d.id === uid) || {};
+    const prev = Number(mine[mode]) || 0;
+    if (score <= prev) return done('Your best on the shared board is ' + prev + '.');
+    const body = { name, updatedAt: Date.now() };
+    for (const m of Object.keys(MODES)) if (Number(mine[m]) > 0) body[m] = Number(mine[m]);
+    body[mode] = score;
+    try {
+      await db.doc('scores/' + uid).set(body);
+      done('Posted to the shared board.');
+    } catch (e) {
+      done("Couldn't post to the shared board. Your score is saved on this device.");
+    }
+  }
+
+  // ---------- menu ----------
+  const MENU = [
+    { id: 'play', label: 'Play', value: () => '›' },
+    { id: 'mode', label: 'Mode', value: () => MODES[settings.mode], change: d => { settings.mode = cycle(Object.keys(MODES), settings.mode, d); } },
+    { id: 'size', label: 'Board', value: () => SIZE_NAMES[settings.size], change: d => { settings.size = cycle(Object.keys(SIZES), settings.size, d); } },
+    { id: 'level', label: 'Speed', value: () => String(settings.level), change: d => { settings.level = ((settings.level - 1 + d + 5) % 5) + 1; } },
+    { id: 'wrap', label: 'Edges', value: () => settings.wrap ? 'Wrap' : 'Walls', change: () => { settings.wrap = !settings.wrap; } },
+    { id: 'easy', label: 'Easy mode', value: () => settings.easy ? 'On' : 'Off', change: () => { settings.easy = !settings.easy; } },
+    { id: 'theme', label: 'Theme', value: () => THEMES[settings.theme], change: d => { settings.theme = cycle(Object.keys(THEMES), settings.theme, d); applyTheme(); } },
+    { id: 'scores', label: 'Scores & badges', value: () => '›' },
+    { id: 'help', label: 'How to play', value: () => '›' }
+  ];
+
+  function activate(i) {
+    const item = MENU[i];
+    if (item.change) { item.change(1); render(); return; }
+    if (item.id === 'play') newGame();
+    if (item.id === 'scores') { scoresMode = settings.mode; ui = 'scores'; render(); }
+    if (item.id === 'help') { ui = 'help'; render(); }
+  }
+
+  // ---------- overlay screens ----------
+  function render() {
+    ov.hidden = ui === 'playing';
+    ov.className = 'overlay center';
+    const modeLabel = g ? MODES[g.mode] : '';
+    let html = '';
+
+    if (ui === 'menu') {
+      ov.className = 'overlay';
+      html = '<div class="menu"><h1>SNAKE</h1>' +
+        MENU.map((it, i) => `<button type="button" class="row${i === menuIdx ? ' sel' : ''}" data-row="${i}"><span>${it.label}</span><span>${esc(it.value())}</span></button>`).join('') +
+        '</div><p class="hint" style="text-align:center;max-width:none">↑↓ choose · ←→ change · OK select</p>';
+    }
+
+    if (ui === 'countdown') {
+      ov.className = 'overlay center thin';
+      const extra = g.mode === 'maze' ? ' · level ' + g.mazeLevel : '';
+      html = `<div class="count" id="countNum">3</div><p>${modeLabel}${extra}</p><p class="hint">You can steer now to pick your first turn</p>`;
+    }
+
+    if (ui === 'paused') {
+      html = `<h1>PAUSED</h1><p>Score ${g.score} · length ${g.snake.length}</p>
+        <div class="actions"><button type="button" data-act="resume">Resume</button><button type="button" data-act="quit">Quit to menu</button></div>
+        <p class="hint">Quitting doesn't save this game.</p>`;
+    }
+
+    if (ui === 'crashed') {
+      html = `<h1>OUCH!</h1><p>Use your one continue to rewind 3 steps?</p>
+        <div class="actions"><button type="button" data-act="continue">Continue</button><button type="button" data-act="end">End game</button></div>
+        <p class="hint">OK continues · Menu ends the game</p>`;
+    }
+
+    if (ui === 'clear') {
+      html = `<h1>LEVEL ${g.mazeLevel} CLEAR</h1><p>Score ${g.score}. The next maze is faster and has more walls.</p>
+        <div class="actions"><button type="button" data-act="next">Next level</button></div>`;
+    }
+
+    if (ui === 'over') {
+      const title = g.ended === 'time' ? 'TIME UP' : g.ended === 'full' ? 'BOARD FULL!' : 'GAME OVER';
+      html = `<h1>${title}</h1><p>Score ${g.score} · length ${g.snake.length}</p>`;
+      if (overInfo.qualifies && !overInfo.saved) {
+        html += `<form class="nameform" id="nameForm"><label for="nameInput">Top-10 score! Your name:</label>
+          <input id="nameInput" maxlength="12" autocomplete="nickname" value="${esc(nickname)}">
+          <button type="submit">Save</button></form>`;
+      } else if (overInfo.saved) {
+        html += `<p>#${overInfo.rank} in ${modeLabel} on this device.</p>`;
+      }
+      if (overInfo.shared) html += `<p class="hint">${esc(overInfo.shared)}</p>`;
+      html += `<div class="actions"><button type="button" data-act="again">Play again</button><button type="button" data-act="menu">Menu</button></div>`;
+    }
+
+    if (ui === 'help') {
+      ov.className = 'overlay';
+      html = `<div class="panel-head"><h2>HOW TO PLAY</h2><button type="button" data-act="menu">Back</button></div>
+        <dl class="help">
+          <dt>Steer</dt><dd>Arrow keys or WASD, swipe on the screen, or the keypad arrows.</dd>
+          <dt>Pause</dt><dd>Space, OK or the Pause key. A 3-2-1 countdown runs before you start again.</dd>
+          <dt>Dots</dt><dd>Each dot is worth your speed level in points. Every 5th dot brings a flashing bonus ring: the faster you reach it, the more it's worth.</dd>
+          <dt>Power-ups</dt><dd>S slows the game for 8 seconds. 2 doubles your points for 10 seconds. A minus sign shrinks you by 4.</dd>
+          <dt>Modes</dt><dd>Classic: play until you crash. Time attack: score as much as you can in 60 seconds. Maze: eat ${MAZE_TARGET} dots to clear each maze.</dd>
+          <dt>Continue</dt><dd>Once per game, after a crash, you can rewind 3 steps and keep going.</dd>
+          <dt>Easy mode</dt><dd>Slower start, and biting your tail cuts it off instead of ending the game. Easy scores stay off the shared board.</dd>
+          <dt>Edges</dt><dd>Walls: the edge ends the game. Wrap: you come out the other side.</dd>
+        </dl>`;
+    }
+
+    if (ui === 'scores') {
+      ov.className = 'overlay';
+      const tabs = [['device', 'Top 10'], ['everyone', 'Everyone'], ['stats', 'Stats'], ['badges', 'Badges']];
+      html = `<div class="panel-head"><div class="tabs" role="tablist">` +
+        tabs.map(([id, label]) => `<button type="button" role="tab" data-act="tab" data-tab="${id}" aria-selected="${scoresTab === id}">${label}</button>`).join('') +
+        `</div><button type="button" data-act="menu">Back</button></div>`;
+      if (scoresTab === 'device' || scoresTab === 'everyone') {
+        html += `<div class="modepick"><button type="button" data-act="smode" data-d="-1" aria-label="Previous mode">◀</button><span>${MODES[scoresMode]}</span><button type="button" data-act="smode" data-d="1" aria-label="Next mode">▶</button></div>`;
+      }
+      if (scoresTab === 'device') {
+        const list = top10[scoresMode];
+        html += list.length
+          ? '<ol class="list">' + list.map((e, i) => `<li><span>${i + 1}</span><span class="who">${esc(e.name)} <span class="tag">${SIZE_NAMES[e.size] || ''} · spd ${e.level}${e.easy ? ' · easy' : ''}</span></span><span>${e.score}</span></li>`).join('') + '</ol>'
+          : `<p class="hint">No ${MODES[scoresMode]} scores on this device yet. Finish a game to set one.</p>`;
+      }
+      if (scoresTab === 'everyone') {
+        if (sharedState === 'off') {
+          html += '<p class="hint">The shared leaderboard works on the published Claude page. On this copy, scores stay on this device.</p>';
+        } else if (sharedState === 'connecting') {
+          html += '<p class="hint">Connecting to the shared board…</p>';
+        } else {
+          const rows = shared
+            .filter(d => Number(d[scoresMode]) > 0)
+            .sort((a, b) => Number(b[scoresMode]) - Number(a[scoresMode]))
+            .slice(0, 10);
+          html += rows.length
+            ? '<ol class="list">' + rows.map((d, i) => `<li class="${d.id === uid ? 'me' : ''}"><span>${i + 1}</span><span class="who">${esc(String(d.name || 'Player').slice(0, 12))}${d.id === uid ? ' <span class="tag">you</span>' : ''}</span><span>${Number(d[scoresMode])}</span></li>`).join('') + '</ol>'
+            : `<p class="hint">No shared ${MODES[scoresMode]} scores yet. Save a top-10 score to post the first one.</p>`;
+          html += '<p class="hint">Each player\'s best score per mode.</p>';
+        }
+      }
+      if (scoresTab === 'stats') {
+        const avg = stats.games ? Math.round(stats.totalScore / stats.games) : 0;
+        const rows = [
+          ['Games played', stats.games], ['Dots eaten', stats.dots], ['Best length', stats.bestLen],
+          ['Average score', avg], ['Time played', fmtTime(stats.timeMs)], ['Bonus dots', stats.bonuses], ['Power-ups used', stats.powerups]
+        ];
+        html += '<dl class="stats">' + rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('') + '</dl>';
+      }
+      if (scoresTab === 'badges') {
+        const got = BADGES.filter(b => badges[b[0]]).length;
+        html += `<p>${got} of ${BADGES.length} unlocked</p><ul class="badges">` +
+          BADGES.map(([id, name, desc]) => `<li class="${badges[id] ? '' : 'locked'}"><span>${badges[id] ? '★' : '·'}</span><span>${name}<br><span class="desc">${desc}</span></span></li>`).join('') + '</ul>';
+      }
+    }
+
+    ov.innerHTML = html;
+    if (ui === 'over' && overInfo.qualifies && !overInfo.saved && matchMedia('(pointer: fine)').matches) {
+      const input = $('nameInput');
+      input.focus();
+      input.select();
     }
     updateHud();
   }
 
-  // ---------- drawing ----------
-  function cellSize() { return canvas.width / GRID; }
+  function fmtTime(ms) {
+    const s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60);
+    return h ? `${h}h ${m % 60}m` : `${m}m ${s % 60}s`;
+  }
 
+  function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+
+  function updateHud() {
+    const inGame = g && !['menu', 'help', 'scores'].includes(ui);
+    const mode = inGame ? g.mode : settings.mode;
+    setText(scoreEl, 'SC ' + pad4(inGame ? g.score : 0));
+    setText(bestEl, 'HI ' + pad4((top10[mode][0] || {}).score || 0));
+    let mid = '';
+    if (inGame) {
+      if (g.mode === 'time') {
+        const s = Math.ceil((TIME_LIMIT - g.playMs) / 1000);
+        mid = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      } else if (g.mode === 'maze') {
+        mid = 'LV' + g.mazeLevel + ' ' + g.mazeDots + '/' + MAZE_TARGET;
+      }
+      if (slowed()) mid += ' S' + Math.ceil((g.slowUntil - g.playMs) / 1000);
+      if (doubled()) mid += ' x2';
+    }
+    setText(midEl, mid.trim());
+  }
+
+  // ---------- drawing ----------
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const w = Math.round(canvas.getBoundingClientRect().width * dpr);
-    const size = Math.max(GRID, Math.floor(w / GRID) * GRID);
+    const size = Math.max(G, Math.floor(w / G) * G);
     if (canvas.width !== size) { canvas.width = size; canvas.height = size; }
     draw();
   }
 
-  function px(x, y, c, color, inset) {
-    const s = cellSize();
-    const g = Math.max(1, Math.round(s * inset));
+  function cell(x, y, color, inset) {
+    const s = canvas.width / G;
+    const p = Math.max(1, Math.round(s * inset));
     ctx.fillStyle = color;
-    ctx.fillRect(x * s + g, y * s + g, s - g * 2, s - g * 2);
+    ctx.fillRect(x * s + p, y * s + p, s - p * 2, s - p * 2);
   }
 
   function draw(now = performance.now()) {
-    const s = cellSize();
-    ctx.fillStyle = LCD;
+    const s = canvas.width / G;
+    ctx.fillStyle = C.lcd;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // faint unlit pixel grid, like real LCD glass
-    for (let x = 0; x < GRID; x++) for (let y = 0; y < GRID; y++) px(x, y, s, GHOST, 0.12);
-    if (!snake) return;
+    for (let x = 0; x < G; x++) for (let y = 0; y < G; y++) cell(x, y, C.shade, 0.12); // unlit LCD pixels
+    if (!g) return;
 
-    if (food) {
+    for (const key of g.walls) {
+      const [x, y] = key.split(',').map(Number);
+      cell(x, y, C.ink, 0);
+      cell(x, y, C.lcd, 0.36);
+    }
+
+    if (g.food) {
       const blink = Math.floor(now / 300) % 2 === 0;
-      const sx = food[0] * s, sy = food[1] * s, q = s / 4;
-      ctx.fillStyle = INK;
-      // diamond-shaped dot made of four small squares
+      const sx = g.food.x * s, sy = g.food.y * s, q = s / 4;
+      ctx.fillStyle = C.ink;
       ctx.fillRect(sx + q * 1.5, sy + q * 0.5, q, q);
       ctx.fillRect(sx + q * 0.5, sy + q * 1.5, q, q);
       ctx.fillRect(sx + q * 2.5, sy + q * 1.5, q, q);
       ctx.fillRect(sx + q * 1.5, sy + q * 2.5, q, q);
       if (blink) ctx.fillRect(sx + q * 1.5, sy + q * 1.5, q, q);
     }
-    if (bonus && (bonus.ttl > 10 || Math.floor(now / 120) % 2 === 0)) {
-      px(bonus.x, bonus.y, s, INK, 0.05);
-      px(bonus.x, bonus.y, s, LCD, 0.3);
-      px(bonus.x, bonus.y, s, INK, 0.4);
+
+    const b = g.bonus;
+    if (b && (b.ttl > 10 || Math.floor(now / 120) % 2 === 0)) {
+      cell(b.x, b.y, C.ink, 0.05);
+      cell(b.x, b.y, C.lcd, 0.3);
+      cell(b.x, b.y, C.ink, 0.4);
     }
-    snake.forEach(([x, y], i) => {
-      px(x, y, s, INK, i === 0 ? 0.04 : 0.1);
+
+    const p = g.power;
+    if (p && (p.ttl > 15 || Math.floor(now / 150) % 2 === 0)) {
+      cell(p.x, p.y, C.ink, 0.02);
+      ctx.fillStyle = C.lcd;
+      ctx.font = `700 ${Math.round(s * 0.7)}px Silkscreen, "Courier New", monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(POWERS[p.type].glyph, p.x * s + s / 2, p.y * s + s / 2 + s * 0.04);
+    }
+
+    g.snake.forEach(([x, y], i) => {
+      cell(x, y, C.ink, i === 0 ? 0.04 : 0.1);
       if (i === 0) {
-        // eye, offset toward the travel direction
-        const [dx, dy] = DIRS[dir];
+        const [dx, dy] = DIRS[g.dir];
         const e = Math.max(2, Math.round(s * 0.18));
         const cx = x * s + s / 2 + dx * s * 0.18 - e / 2 + (dy !== 0 ? s * 0.16 : 0);
         const cy = y * s + s / 2 + dy * s * 0.18 - e / 2 + (dx !== 0 ? -s * 0.16 : 0);
-        ctx.fillStyle = LCD;
+        ctx.fillStyle = C.lcd;
         ctx.fillRect(Math.round(cx), Math.round(cy), e, e);
       }
     });
   }
 
   function loop(now) {
-    if (state === 'playing') {
-      acc += now - lastTick;
+    if (ui === 'countdown') {
+      const elapsed = now - countdownStart;
+      if (elapsed >= 1800) {
+        ui = 'playing';
+        lastTick = now;
+        acc = 0;
+        render();
+      } else {
+        const el = $('countNum');
+        if (el) setText(el, String(3 - Math.floor(elapsed / 600)));
+      }
+    } else if (ui === 'playing') {
+      const dt = Math.min(now - lastTick, 250); // a hidden tab doesn't fast-forward
       lastTick = now;
-      const step = stepMs();
-      if (acc > step * 5) acc = step; // tab was hidden; don't fast-forward
-      while (acc >= step && state === 'playing') { tick(); acc -= step; }
+      acc += dt;
+      g.playMs += dt;
+      if (g.mode === 'time' && g.playMs >= TIME_LIMIT) {
+        g.playMs = TIME_LIMIT;
+        endGame('time');
+      } else {
+        while (ui === 'playing' && acc >= stepMs()) { acc -= stepMs(); tick(); }
+      }
+      updateHud();
     }
     draw(now);
     requestAnimationFrame(loop);
   }
 
-  // ---------- input ----------
+  // ---------- controls ----------
+  function press(d) {
+    if (ui === 'menu') {
+      if (d === 'up') menuIdx = (menuIdx + MENU.length - 1) % MENU.length;
+      if (d === 'down') menuIdx = (menuIdx + 1) % MENU.length;
+      if ((d === 'left' || d === 'right') && MENU[menuIdx].change) MENU[menuIdx].change(d === 'left' ? -1 : 1);
+      render();
+    } else if (ui === 'scores' && (d === 'left' || d === 'right')) {
+      const ids = ['device', 'everyone', 'stats', 'badges'];
+      scoresTab = cycle(ids, scoresTab, d === 'left' ? -1 : 1);
+      render();
+    } else if (ui === 'scores' && (scoresTab === 'device' || scoresTab === 'everyone')) {
+      scoresMode = cycle(Object.keys(MODES), scoresMode, d === 'up' ? -1 : 1);
+      render();
+    } else {
+      turn(d);
+    }
+  }
+
+  function ok() {
+    if (ui === 'menu') activate(menuIdx);
+    else if (ui === 'playing') pause();
+    else if (ui === 'paused') startCountdown();
+    else if (ui === 'crashed') continueGame();
+    else if (ui === 'clear') nextMaze();
+    else if (ui === 'over') {
+      if (overInfo.qualifies && !overInfo.saved) $('nameInput').focus();
+      else newGame();
+    }
+    else if (ui === 'help' || ui === 'scores') toMenu();
+  }
+
+  function softMenu() {
+    if (ui === 'playing' || ui === 'countdown') pause();
+    else if (ui === 'paused' || ui === 'over' || ui === 'help' || ui === 'scores') toMenu();
+    else if (ui === 'crashed') endGame('crash');
+  }
+
+  function softPause() {
+    if (ui === 'playing' || ui === 'countdown') pause();
+    else if (ui === 'paused') startCountdown();
+    else ok();
+  }
+
   const KEYMAP = {
     ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
     w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right'
   };
   document.addEventListener('keydown', e => {
-    if (KEYMAP[e.key]) {
-      e.preventDefault();
-      if (state !== 'playing' && state !== 'paused') start();
-      turn(KEYMAP[e.key]);
-    } else if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
-      e.preventDefault();
-      togglePause();
-    } else if (e.key === 'Enter') {
-      if (e.target.tagName === 'BUTTON') return; // let the focused button handle it
-      e.preventDefault();
-      state === 'playing' || state === 'paused' ? togglePause() : start();
-    }
+    if (e.target.tagName === 'INPUT') { if (e.key === 'Escape') e.target.blur(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key;
+    const dir = KEYMAP[k];
+    const isAction = k === ' ' || k === 'Enter';
+    if (!dir && !isAction && !['Escape', 'm', 'M', 'p', 'P'].includes(k)) return;
+    if (isAction && e.target.tagName === 'BUTTON' && ui !== 'playing' && ui !== 'countdown') return; // let the focused button click
+    e.preventDefault();
+    if (dir) press(dir);
+    else if (k === 'Escape' || k === 'm' || k === 'M') softMenu();
+    else if (k === 'p' || k === 'P' || k === ' ') softPause();
+    else ok();
+  });
+
+  ov.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.row != null) { menuIdx = Number(b.dataset.row); activate(menuIdx); return; }
+    const act = b.dataset.act;
+    if (act === 'resume') startCountdown();
+    if (act === 'quit' || act === 'menu') toMenu();
+    if (act === 'continue') continueGame();
+    if (act === 'end') endGame('crash');
+    if (act === 'next') nextMaze();
+    if (act === 'again') newGame();
+    if (act === 'tab') { scoresTab = b.dataset.tab; render(); }
+    if (act === 'smode') { scoresMode = cycle(Object.keys(MODES), scoresMode, Number(b.dataset.d)); render(); }
+  });
+  ov.addEventListener('submit', e => {
+    e.preventDefault();
+    saveScore($('nameInput').value);
   });
 
   document.querySelectorAll('[data-dir]').forEach(b => {
-    b.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      if (state !== 'playing' && state !== 'paused') start();
-      turn(b.dataset.dir);
-    });
+    b.addEventListener('pointerdown', e => { e.preventDefault(); press(b.dataset.dir); });
   });
-  $('btnOk').addEventListener('click', () => state === 'playing' || state === 'paused' ? togglePause() : start());
-  $('btnStart').addEventListener('click', () => { state = 'over'; start(); });
-  $('btnPause').addEventListener('click', togglePause);
-  $('btnWrap').addEventListener('click', e => {
-    wrap = !wrap;
-    e.currentTarget.textContent = wrap ? 'Wrap' : 'Walls';
-    e.currentTarget.setAttribute('aria-pressed', String(wrap));
-  });
-  $('btnSpeed').addEventListener('click', e => {
-    level = level % 5 + 1;
-    e.currentTarget.textContent = 'Lvl ' + level;
-  });
-
+  $('btnOk').addEventListener('click', ok);
+  $('btnMenu').addEventListener('click', softMenu);
+  $('btnPause').addEventListener('click', softPause);
   // drop focus after a mouse/touch press so Space pauses instead of re-clicking the button
-  document.querySelectorAll('button').forEach(b => b.addEventListener('click', e => { if (e.detail > 0) b.blur(); }));
-  document.querySelectorAll('[data-dir]').forEach(b => b.addEventListener('pointerup', () => b.blur()));
+  document.querySelectorAll('.keypad button').forEach(b => b.addEventListener('click', e => { if (e.detail > 0) b.blur(); }));
 
   // swipe on the screen
+  const boardEl = document.querySelector('.board');
   let touch = null;
-  const screen = document.querySelector('.screen');
-  screen.addEventListener('touchstart', e => { const t = e.touches[0]; touch = [t.clientX, t.clientY]; }, { passive: true });
-  screen.addEventListener('touchmove', e => {
-    if (!touch) return;
+  boardEl.addEventListener('touchstart', e => { const t = e.touches[0]; touch = [t.clientX, t.clientY]; }, { passive: true });
+  boardEl.addEventListener('touchmove', e => {
+    if (!touch || (ui !== 'playing' && ui !== 'countdown')) return;
     e.preventDefault();
     const t = e.touches[0];
     const dx = t.clientX - touch[0], dy = t.clientY - touch[1];
     if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
-    if (state !== 'playing' && state !== 'paused') start();
     turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
     touch = [t.clientX, t.clientY];
   }, { passive: false });
-  screen.addEventListener('touchend', () => { touch = null; });
-  screen.addEventListener('click', () => { if (state !== 'playing') state === 'paused' ? togglePause() : start(); });
+  boardEl.addEventListener('touchend', () => { touch = null; });
 
-  document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') togglePause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && (ui === 'playing' || ui === 'countdown')) pause(); });
   window.addEventListener('resize', resize);
 
-  state = 'ready';
-  reset();
+  applyTheme();
+  render();
   resize();
+  checkBadges();
   requestAnimationFrame(loop);
 })();
 </script>
